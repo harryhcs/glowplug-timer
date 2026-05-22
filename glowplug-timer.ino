@@ -28,6 +28,12 @@ bool glowComplete = false;
 int activeTarget = 0;
 int bootTempReading = 0;
 
+String htmlAttr(String s) {
+  s.replace("&", "&amp;");
+  s.replace("\"", "&quot;");
+  return s;
+}
+
 void handleRoot() {
 
   int sensor = analogRead(TEMP_PIN);
@@ -51,6 +57,10 @@ void handleRoot() {
   html += "A0 > 400: <input type='number' name='t4' value='"+String(t4)+"'>s<br>";
   html += "A0 > 300: <input type='number' name='t3' value='"+String(t3)+"'>s<br>";
   html += "A0 > 200: <input type='number' name='t2' value='"+String(t2)+"'>s<br>";
+  html += "<label>Home Wi-Fi SSID</label><br>";
+  html += "<input type='text' name='wifi_ssid' value=\""+htmlAttr(homeSsid)+"\"><br>";
+  html += "<label>Home Wi-Fi password</label><br>";
+  html += "<input type='password' name='wifi_pass' value=\""+htmlAttr(homePass)+"\"><br>";
   html += "<input type='submit' class='btn' value='SAVE SETTINGS'></form></div></body></html>";
 
   server.send(200,"text/html",html);
@@ -65,6 +75,9 @@ void handleSave() {
   t4 = server.arg("t4").toInt(); prefs.putInt("t4",t4);
   t3 = server.arg("t3").toInt(); prefs.putInt("t3",t3);
   t2 = server.arg("t2").toInt(); prefs.putInt("t2",t2);
+
+  homeSsid = server.arg("wifi_ssid"); prefs.putString("wifi_ssid", homeSsid);
+  homePass = server.arg("wifi_pass"); prefs.putString("wifi_pass", homePass);
 
   server.sendHeader("Location","/");
   server.send(303);
