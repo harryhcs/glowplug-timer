@@ -12,7 +12,7 @@ const int TEMP_PIN = A0;
 const unsigned long AFTER_GLOW_DURATION_MS = 3000;
 const int AFTER_GLOW_COLD_THRESHOLD = 700;
 
-const char* FIRMWARE_VERSION = "1.0.2";
+const char* FIRMWARE_VERSION = "1.0.3";
 
 Preferences prefs;
 WebServer server(80);
@@ -38,6 +38,26 @@ String htmlAttr(String s) {
   s.replace("&", "&amp;");
   s.replace("\"", "&quot;");
   return s;
+}
+
+void runOtaCheck() {
+  if (WiFi.status() != WL_CONNECTED) {
+    lastOtaState = "skipped — STA not connected";
+    return;
+  }
+  String tag, binUrl;
+  if (!otaFetchLatest(tag, binUrl)) {
+    lastOtaState = "check failed: github unreachable or no .bin asset";
+    return;
+  }
+  if (!otaIsNewer(tag, FIRMWARE_VERSION)) {
+    lastOtaState = "up to date (latest v" + tag + ")";
+    return;
+  }
+  String err;
+  if (!otaApplyUpdate(binUrl, err)) {
+    lastOtaState = "flash failed: " + err;
+  }
 }
 
 void handleRoot() {
@@ -75,7 +95,10 @@ void handleRoot() {
   html += "<input type='text' name='wifi_ssid' value=\""+htmlAttr(homeSsid)+"\"><br>";
   html += "<label>Home Wi-Fi password</label><br>";
   html += "<input type='password' name='wifi_pass' value=\""+htmlAttr(homePass)+"\"><br>";
-  html += "<input type='submit' class='btn' value='SAVE SETTINGS'></form></div></body></html>";
+  html += "<input type='submit' class='btn' value='SAVE SETTINGS'></form>";
+  html += "<form action='/ota' method='POST' style='margin-top:10px'>";
+  html += "<input type='submit' class='btn' value='CHECK FOR UPDATE NOW'></form>";
+  html += "</div></body></html>";
 
   server.send(200,"text/html",html);
 }
@@ -138,6 +161,11 @@ void setup() {
 
   server.on("/",handleRoot);
   server.on("/save",HTTP_POST,handleSave);
+  server.on("/ota", HTTP_POST, []() {
+    runOtaCheck();
+    server.sendHeader("Location", "/");
+    server.send(303);
+  });
   server.on("/status", HTTP_GET, []() {
     String j = "{";
     j += "\"temp\":" + String(analogRead(TEMP_PIN)) + ",";
@@ -219,20 +247,5 @@ void loop() {
   }
   if (otaTried) return;
   otaTried = true;
-  if (WiFi.status() != WL_CONNECTED) {
-    lastOtaState = "skipped — STA not connected";
-    return;
-  }
-  String tag, binUrl;
-  if (!otaFetchLatest(tag, binUrl)) {
-    lastOtaState = "check failed: github unreachable";
-    return;
-  }
-  if (!otaIsNewer(tag, FIRMWARE_VERSION)) {
-    lastOtaState = "up to date";
-    return;
-  }
-  if (!otaApplyUpdate(binUrl)) {
-    lastOtaState = "check failed: flash failed";
-  }
+  runOtaCheck();
 }

@@ -82,7 +82,7 @@ bool otaIsNewer(const String& latest, const String& current) {
   return lc > cc;
 }
 
-bool otaApplyUpdate(const String& binUrl) {
+bool otaApplyUpdate(const String& binUrl, String& errOut) {
   WiFiClientSecure client;
   client.setInsecure();
 
@@ -90,7 +90,14 @@ bool otaApplyUpdate(const String& binUrl) {
     bool on = (millis() / OTA_BLINK_INTERVAL_MS) % 2 == 0;
     digitalWrite(DASH_LIGHT, on ? HIGH : LOW);
   });
+  // GitHub release downloads 302 to objects.githubusercontent.com — follow them.
+  httpUpdate.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
 
   t_httpUpdate_return ret = httpUpdate.update(client, binUrl);
-  return ret == HTTP_UPDATE_OK;
+  if (ret == HTTP_UPDATE_OK) {
+    errOut = "";
+    return true;
+  }
+  errOut = String(httpUpdate.getLastError()) + " " + httpUpdate.getLastErrorString();
+  return false;
 }
