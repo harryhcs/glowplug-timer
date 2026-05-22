@@ -7,6 +7,9 @@ const int GLOW_RELAY = D9;
 const int DASH_LIGHT = D3;
 const int TEMP_PIN = A0;
 
+const unsigned long AFTER_GLOW_DURATION_MS = 3000;
+const int AFTER_GLOW_COLD_THRESHOLD = 700;
+
 Preferences prefs;
 WebServer server(80);
 
@@ -20,6 +23,7 @@ bool afterGlowActive = false;
 bool glowComplete = false;
 
 int activeTarget = 0;
+int bootTempReading = 0;
 
 void handleRoot() {
 
@@ -93,15 +97,15 @@ void setup() {
 
   delay(200);
 
-  int sensor = analogRead(TEMP_PIN);
+  bootTempReading = analogRead(TEMP_PIN);
 
-  if(sensor > 800) activeTarget = t8;
-  else if(sensor > 700) activeTarget = t7;
-  else if(sensor > 600) activeTarget = t6;
-  else if(sensor > 500) activeTarget = t5;
-  else if(sensor > 400) activeTarget = t4;
-  else if(sensor > 300) activeTarget = t3;
-  else if(sensor > 200) activeTarget = t2;
+  if(bootTempReading > 800) activeTarget = t8;
+  else if(bootTempReading > 700) activeTarget = t7;
+  else if(bootTempReading > 600) activeTarget = t6;
+  else if(bootTempReading > 500) activeTarget = t5;
+  else if(bootTempReading > 400) activeTarget = t4;
+  else if(bootTempReading > 300) activeTarget = t3;
+  else if(bootTempReading > 200) activeTarget = t2;
   else activeTarget = 0;
 
   preGlowStart = millis();
@@ -124,7 +128,14 @@ void loop() {
   }
 
   // ENGINE START DETECT
-  if(preGlowFinished && !afterGlowActive && digitalRead(ALT_PIN)==HIGH) {
+  if(preGlowFinished && !afterGlowActive && !glowComplete && digitalRead(ALT_PIN)==HIGH) {
+
+    if(bootTempReading < AFTER_GLOW_COLD_THRESHOLD) {
+
+      digitalWrite(GLOW_RELAY,LOW);
+      glowComplete = true;
+      return;
+    }
 
     afterGlowStart = millis();
     afterGlowActive = true;
@@ -133,7 +144,7 @@ void loop() {
   // AFTER-GLOW TIMER
   if(afterGlowActive && !glowComplete) {
 
-    if(now - afterGlowStart >= 15000) {
+    if(now - afterGlowStart >= AFTER_GLOW_DURATION_MS) {
 
       digitalWrite(GLOW_RELAY,LOW);
       glowComplete = true;
