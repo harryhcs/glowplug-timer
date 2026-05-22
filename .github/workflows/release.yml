@@ -1,0 +1,50 @@
+name: Release firmware
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:esp32
+
+      - name: Install libraries
+        run: arduino-cli lib install ArduinoJson
+
+      - name: Stamp FIRMWARE_VERSION from tag
+        run: |
+          sed -i "s|const char\* FIRMWARE_VERSION = \".*\";|const char* FIRMWARE_VERSION = \"${{ steps.ver.outputs.version }}\";|" glowplug-timer.ino
+          grep FIRMWARE_VERSION glowplug-timer.ino
+
+      - name: Compile
+        run: |
+          arduino-cli compile \
+            --fqbn arduino:esp32:nano_nora \
+            --output-dir build \
+            glowplug-timer.ino
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            build/glowplug-timer.ino.bin
