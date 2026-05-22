@@ -11,13 +11,13 @@ static const char* UPDATE_CHECK_URL =
 static const int DASH_LIGHT = D3;
 static const unsigned long OTA_BLINK_INTERVAL_MS = 250;
 
-String otaFetchLatestTag() {
+bool otaFetchLatest(String& tagOut, String& binUrlOut) {
   WiFiClientSecure client;
   client.setInsecure();
 
   HTTPClient http;
   if (!http.begin(client, UPDATE_CHECK_URL)) {
-    return "";
+    return false;
   }
   http.useHTTP10(true);
   http.addHeader("User-Agent", "glowplug-timer");
@@ -25,26 +25,51 @@ String otaFetchLatestTag() {
   int status = http.GET();
   if (status != HTTP_CODE_OK) {
     http.end();
-    return "";
+    return false;
   }
 
-  StaticJsonDocument<2048> doc;
-  DeserializationError err = deserializeJson(doc, http.getStream());
+  // Filter keeps only the fields we need — release JSON can be 10KB+.
+  JsonDocument filter;
+  filter["tag_name"] = true;
+  filter["assets"][0]["name"] = true;
+  filter["assets"][0]["browser_download_url"] = true;
+
+  JsonDocument doc;
+  DeserializationError err = deserializeJson(
+      doc, http.getStream(), DeserializationOption::Filter(filter));
   http.end();
   if (err) {
-    return "";
+    return false;
   }
 
   const char* tag = doc["tag_name"];
   if (!tag) {
-    return "";
+    return false;
+  }
+  String tagStr(tag);
+  if (tagStr.startsWith("v")) {
+    tagStr.remove(0, 1);
   }
 
-  String result(tag);
-  if (result.startsWith("v")) {
-    result.remove(0, 1);
+  // Prefer an asset whose name ends in .bin; first match wins.
+  String binUrl;
+  for (JsonObject asset : doc["assets"].as<JsonArray>()) {
+    const char* name = asset["name"];
+    const char* url = asset["browser_download_url"];
+    if (!name || !url) continue;
+    String n(name);
+    if (n.endsWith(".bin")) {
+      binUrl = url;
+      break;
+    }
   }
-  return result;
+  if (binUrl.length() == 0) {
+    return false;
+  }
+
+  tagOut = tagStr;
+  binUrlOut = binUrl;
+  return true;
 }
 
 bool otaIsNewer(const String& latest, const String& current) {
@@ -57,19 +82,15 @@ bool otaIsNewer(const String& latest, const String& current) {
   return lc > cc;
 }
 
-bool otaApplyUpdate(const String& tag) {
+bool otaApplyUpdate(const String& binUrl) {
   WiFiClientSecure client;
   client.setInsecure();
-
-  String url =
-      "https://github.com/harryhcs/glowplug-timer/releases/download/v" + tag +
-      "/firmware.bin";
 
   httpUpdate.onProgress([](int cur, int total) {
     bool on = (millis() / OTA_BLINK_INTERVAL_MS) % 2 == 0;
     digitalWrite(DASH_LIGHT, on ? HIGH : LOW);
   });
 
-  t_httpUpdate_return ret = httpUpdate.update(client, url);
+  t_httpUpdate_return ret = httpUpdate.update(client, binUrl);
   return ret == HTTP_UPDATE_OK;
 }
