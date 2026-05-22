@@ -95,12 +95,6 @@ void setup() {
 
   Serial.begin(115200);
 
-  WiFi.softAP("GlowPlugController","password123");
-
-  server.on("/",handleRoot);
-  server.on("/save",HTTP_POST,handleSave);
-  server.begin();
-
   prefs.begin("glow_final",false);
 
   t8 = prefs.getInt("t8",5);
@@ -113,6 +107,16 @@ void setup() {
 
   homeSsid = prefs.getString("wifi_ssid", "");
   homePass = prefs.getString("wifi_pass", "");
+
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP("GlowPlugController","password123");
+  if (homeSsid.length() > 0) {
+    WiFi.begin(homeSsid.c_str(), homePass.c_str());
+  }
+
+  server.on("/",handleRoot);
+  server.on("/save",HTTP_POST,handleSave);
+  server.begin();
 
   delay(200);
 
