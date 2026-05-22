@@ -1,0 +1,142 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include <Preferences.h>
+
+const int ALT_PIN = D2;
+const int GLOW_RELAY = D9;
+const int DASH_LIGHT = D3;
+const int TEMP_PIN = A0;
+
+Preferences prefs;
+WebServer server(80);
+
+int t8,t7,t6,t5,t4,t3,t2;
+
+unsigned long preGlowStart = 0;
+unsigned long afterGlowStart = 0;
+
+bool preGlowFinished = false;
+bool afterGlowActive = false;
+bool glowComplete = false;
+
+int activeTarget = 0;
+
+void handleRoot() {
+
+  int sensor = analogRead(TEMP_PIN);
+
+  String html = "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>";
+  html += "body{background:#121212;color:#eee;font-family:sans-serif;text-align:center;padding:20px;}";
+  html += ".card{background:#1e1e1e;padding:20px;border-radius:15px;border:1px solid #333;max-width:400px;margin:auto;}";
+  html += "input{width:60px;padding:10px;margin:5px;background:#2a2a2a;color:#fff;border:1px solid #444;border-radius:8px;text-align:center;}";
+  html += ".btn{background:#e67e22;color:white;border:none;padding:15px;border-radius:8px;cursor:pointer;width:100%;font-size:16px;margin-top:10px;}";
+  html += ".status{color:#e67e22;font-weight:bold;font-size:1.2em;}</style></head><body><div class='card'>";
+
+  html += "<h2>105 GLOW CONTROL</h2>";
+  html += "<p>A0 Reading: <span class='status'>" + String(sensor) + "</span></p>";
+  html += "<p>Target: <span class='status'>" + String(activeTarget) + "s</span></p>";
+
+  html += "<form action='/save' method='POST'>";
+  html += "A0 > 800: <input type='number' name='t8' value='"+String(t8)+"'>s<br>";
+  html += "A0 > 700: <input type='number' name='t7' value='"+String(t7)+"'>s<br>";
+  html += "A0 > 600: <input type='number' name='t6' value='"+String(t6)+"'>s<br>";
+  html += "A0 > 500: <input type='number' name='t5' value='"+String(t5)+"'>s<br>";
+  html += "A0 > 400: <input type='number' name='t4' value='"+String(t4)+"'>s<br>";
+  html += "A0 > 300: <input type='number' name='t3' value='"+String(t3)+"'>s<br>";
+  html += "A0 > 200: <input type='number' name='t2' value='"+String(t2)+"'>s<br>";
+  html += "<input type='submit' class='btn' value='SAVE SETTINGS'></form></div></body></html>";
+
+  server.send(200,"text/html",html);
+}
+
+void handleSave() {
+
+  t8 = server.arg("t8").toInt(); prefs.putInt("t8",t8);
+  t7 = server.arg("t7").toInt(); prefs.putInt("t7",t7);
+  t6 = server.arg("t6").toInt(); prefs.putInt("t6",t6);
+  t5 = server.arg("t5").toInt(); prefs.putInt("t5",t5);
+  t4 = server.arg("t4").toInt(); prefs.putInt("t4",t4);
+  t3 = server.arg("t3").toInt(); prefs.putInt("t3",t3);
+  t2 = server.arg("t2").toInt(); prefs.putInt("t2",t2);
+
+  server.sendHeader("Location","/");
+  server.send(303);
+}
+
+void setup() {
+
+  pinMode(GLOW_RELAY,OUTPUT);
+  pinMode(DASH_LIGHT,OUTPUT);
+  pinMode(ALT_PIN,INPUT);
+  pinMode(TEMP_PIN,INPUT);
+
+  digitalWrite(GLOW_RELAY,HIGH);
+  digitalWrite(DASH_LIGHT,HIGH);
+
+  Serial.begin(115200);
+
+  WiFi.softAP("GlowPlugController","password123");
+
+  server.on("/",handleRoot);
+  server.on("/save",HTTP_POST,handleSave);
+  server.begin();
+
+  prefs.begin("glow_final",false);
+
+  t8 = prefs.getInt("t8",12);
+  t7 = prefs.getInt("t7",10);
+  t6 = prefs.getInt("t6",8);
+  t5 = prefs.getInt("t5",6);
+  t4 = prefs.getInt("t4",4);
+  t3 = prefs.getInt("t3",2);
+  t2 = prefs.getInt("t2",0);
+
+  delay(200);
+
+  int sensor = analogRead(TEMP_PIN);
+
+  if(sensor > 800) activeTarget = t8;
+  else if(sensor > 700) activeTarget = t7;
+  else if(sensor > 600) activeTarget = t6;
+  else if(sensor > 500) activeTarget = t5;
+  else if(sensor > 400) activeTarget = t4;
+  else if(sensor > 300) activeTarget = t3;
+  else if(sensor > 200) activeTarget = t2;
+  else activeTarget = 0;
+
+  preGlowStart = millis();
+}
+
+void loop() {
+
+  server.handleClient();
+
+  unsigned long now = millis();
+
+  // PRE-GLOW TIMER
+  if(!preGlowFinished) {
+
+    if(now - preGlowStart >= (unsigned long)activeTarget * 1000) {
+
+      digitalWrite(DASH_LIGHT,LOW);
+      preGlowFinished = true;
+    }
+  }
+
+  // ENGINE START DETECT
+  if(preGlowFinished && !afterGlowActive && digitalRead(ALT_PIN)==HIGH) {
+
+    afterGlowStart = millis();
+    afterGlowActive = true;
+  }
+
+  // AFTER-GLOW TIMER
+  if(afterGlowActive && !glowComplete) {
+
+    if(now - afterGlowStart >= 15000) {
+
+      digitalWrite(GLOW_RELAY,LOW);
+      glowComplete = true;
+    }
+  }
+}
