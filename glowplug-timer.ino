@@ -83,13 +83,13 @@ void setup() {
 
   prefs.begin("glow_final",false);
 
-  t8 = prefs.getInt("t8",12);
-  t7 = prefs.getInt("t7",10);
-  t6 = prefs.getInt("t6",8);
-  t5 = prefs.getInt("t5",6);
-  t4 = prefs.getInt("t4",4);
-  t3 = prefs.getInt("t3",2);
-  t2 = prefs.getInt("t2",0);
+  t8 = prefs.getInt("t8",5);
+  t7 = prefs.getInt("t7",4);
+  t6 = prefs.getInt("t6",3);
+  t5 = prefs.getInt("t5",2);
+  t4 = prefs.getInt("t4",1);
+  t3 = prefs.getInt("t3",1);
+  t2 = prefs.getInt("t2",1);
 
   delay(200);
 
