@@ -12,7 +12,7 @@ const int TEMP_PIN = A0;
 const unsigned long AFTER_GLOW_DURATION_MS = 3000;
 const int AFTER_GLOW_COLD_THRESHOLD = 700;
 
-const char* FIRMWARE_VERSION = "1.0.0";
+const char* FIRMWARE_VERSION = "1.0.1";
 
 Preferences prefs;
 WebServer server(80);
@@ -51,9 +51,17 @@ void handleRoot() {
   html += ".btn{background:#e67e22;color:white;border:none;padding:15px;border-radius:8px;cursor:pointer;width:100%;font-size:16px;margin-top:10px;}";
   html += ".status{color:#e67e22;font-weight:bold;font-size:1.2em;}</style></head><body><div class='card'>";
 
+  String wifiStatus;
+  if (homeSsid.length() == 0) wifiStatus = "not configured";
+  else if (WiFi.status() == WL_CONNECTED) wifiStatus = "connected";
+  else wifiStatus = "not connected";
+
   html += "<h2>105 GLOW CONTROL</h2>";
   html += "<p>A0 Reading: <span class='status'>" + String(sensor) + "</span></p>";
   html += "<p>Target: <span class='status'>" + String(activeTarget) + "s</span></p>";
+  html += "<p>Firmware: <span class='status'>v" + String(FIRMWARE_VERSION) + "</span></p>";
+  html += "<p>Home Wi-Fi: <span class='status'>" + wifiStatus + "</span></p>";
+  html += "<p>Last OTA: <span class='status'>" + lastOtaState + "</span></p>";
 
   html += "<form action='/save' method='POST'>";
   html += "A0 > 800: <input type='number' name='t8' value='"+String(t8)+"'>s<br>";
