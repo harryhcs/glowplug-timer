@@ -2,6 +2,8 @@
 #include <WebServer.h>
 #include <Preferences.h>
 
+#include "ota.h"
+
 const int ALT_PIN = D2;
 const int GLOW_RELAY = D9;
 const int DASH_LIGHT = D3;
@@ -197,5 +199,32 @@ void loop() {
       digitalWrite(GLOW_RELAY,LOW);
       glowComplete = true;
     }
+  }
+
+  // OTA pipeline (gated on glowComplete) — otaFetchLatestTag → otaIsNewer → otaApplyUpdate
+  static bool otaTried = false;
+  if (!glowComplete) {
+    if (homeSsid.length() > 0 && !otaTried) {
+      lastOtaState = "deferred — glow sequence active";
+    }
+    return;
+  }
+  if (otaTried) return;
+  otaTried = true;
+  if (WiFi.status() != WL_CONNECTED) {
+    lastOtaState = "skipped — STA not connected";
+    return;
+  }
+  String tag = otaFetchLatestTag();
+  if (tag.length() == 0) {
+    lastOtaState = "check failed: github unreachable";
+    return;
+  }
+  if (!otaIsNewer(tag, FIRMWARE_VERSION)) {
+    lastOtaState = "up to date";
+    return;
+  }
+  if (!otaApplyUpdate(tag)) {
+    lastOtaState = "check failed: flash failed";
   }
 }
