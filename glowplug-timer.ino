@@ -15,6 +15,9 @@ WebServer server(80);
 
 int t8,t7,t6,t5,t4,t3,t2;
 
+String homeSsid;
+String homePass;
+
 unsigned long preGlowStart = 0;
 unsigned long afterGlowStart = 0;
 
@@ -94,6 +97,9 @@ void setup() {
   t4 = prefs.getInt("t4",1);
   t3 = prefs.getInt("t3",1);
   t2 = prefs.getInt("t2",1);
+
+  homeSsid = prefs.getString("wifi_ssid", "");
+  homePass = prefs.getString("wifi_pass", "");
 
   delay(200);
 
