@@ -128,6 +128,19 @@ void setup() {
 
   server.on("/",handleRoot);
   server.on("/save",HTTP_POST,handleSave);
+  server.on("/status", HTTP_GET, []() {
+    String j = "{";
+    j += "\"temp\":" + String(analogRead(TEMP_PIN)) + ",";
+    j += "\"target_s\":" + String(activeTarget) + ",";
+    j += "\"pre_glow_done\":" + String(preGlowFinished ? "true" : "false") + ",";
+    j += "\"after_glow_active\":" + String(afterGlowActive ? "true" : "false") + ",";
+    j += "\"glow_complete\":" + String(glowComplete ? "true" : "false") + ",";
+    j += "\"firmware\":\"" + String(FIRMWARE_VERSION) + "\",";
+    j += "\"sta_connected\":" + String(WiFi.status() == WL_CONNECTED ? "true" : "false") + ",";
+    j += "\"last_ota\":\"" + lastOtaState + "\"";
+    j += "}";
+    server.send(200, "application/json", j);
+  });
   server.begin();
 
   delay(200);
