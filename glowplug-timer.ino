@@ -28,6 +28,12 @@ bool glowComplete = false;
 int activeTarget = 0;
 int bootTempReading = 0;
 
+String htmlAttr(String s) {
+  s.replace("&", "&amp;");
+  s.replace("\"", "&quot;");
+  return s;
+}
+
 void handleRoot() {
 
   int sensor = analogRead(TEMP_PIN);
@@ -52,9 +58,9 @@ void handleRoot() {
   html += "A0 > 300: <input type='number' name='t3' value='"+String(t3)+"'>s<br>";
   html += "A0 > 200: <input type='number' name='t2' value='"+String(t2)+"'>s<br>";
   html += "<label>Home Wi-Fi SSID</label><br>";
-  html += "<input type='text' name='wifi_ssid' value='"+homeSsid+"'><br>";
+  html += "<input type='text' name='wifi_ssid' value=\""+htmlAttr(homeSsid)+"\"><br>";
   html += "<label>Home Wi-Fi password</label><br>";
-  html += "<input type='password' name='wifi_pass' value='"+homePass+"'><br>";
+  html += "<input type='password' name='wifi_pass' value=\""+htmlAttr(homePass)+"\"><br>";
   html += "<input type='submit' class='btn' value='SAVE SETTINGS'></form></div></body></html>";
 
   server.send(200,"text/html",html);
