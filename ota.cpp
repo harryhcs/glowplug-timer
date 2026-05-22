@@ -47,6 +47,16 @@ String otaFetchLatestTag() {
   return result;
 }
 
+bool otaIsNewer(const String& latest, const String& current) {
+  int la = 0, lb = 0, lc = 0;
+  int ca = 0, cb = 0, cc = 0;
+  sscanf(latest.c_str(), "%d.%d.%d", &la, &lb, &lc);
+  sscanf(current.c_str(), "%d.%d.%d", &ca, &cb, &cc);
+  if (la != ca) return la > ca;
+  if (lb != cb) return lb > cb;
+  return lc > cc;
+}
+
 bool otaApplyUpdate(const String& tag) {
   WiFiClientSecure client;
   client.setInsecure();
