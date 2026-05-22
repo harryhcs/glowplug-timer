@@ -10,6 +10,8 @@ const int TEMP_PIN = A0;
 const unsigned long AFTER_GLOW_DURATION_MS = 3000;
 const int AFTER_GLOW_COLD_THRESHOLD = 700;
 
+const char* FIRMWARE_VERSION = "1.0.0";
+
 Preferences prefs;
 WebServer server(80);
 
@@ -17,6 +19,8 @@ int t8,t7,t6,t5,t4,t3,t2;
 
 String homeSsid;
 String homePass;
+
+String lastOtaState;
 
 unsigned long preGlowStart = 0;
 unsigned long afterGlowStart = 0;
@@ -107,6 +111,14 @@ void setup() {
 
   homeSsid = prefs.getString("wifi_ssid", "");
   homePass = prefs.getString("wifi_pass", "");
+
+  String prevFw = prefs.getString("prev_fw", "");
+  if (prevFw.length() > 0 && prevFw != FIRMWARE_VERSION) {
+    lastOtaState = "updated from v" + prevFw + " → v" + String(FIRMWARE_VERSION);
+  } else {
+    lastOtaState = "up to date";
+  }
+  prefs.putString("prev_fw", FIRMWARE_VERSION);
 
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAP("GlowPlugController","password123");
