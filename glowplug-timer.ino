@@ -9,10 +9,10 @@ const int GLOW_RELAY = D9;
 const int DASH_LIGHT = D3;
 const int TEMP_PIN = A0;
 
-const unsigned long AFTER_GLOW_DURATION_MS = 7000;
+const unsigned long AFTER_GLOW_DURATION_MS = 5000;
 const int AFTER_GLOW_COLD_THRESHOLD = 600;
 
-const char* FIRMWARE_VERSION = "1.1.0";
+const char* FIRMWARE_VERSION = "1.1.1";
 
 Preferences prefs;
 WebServer server(80);

@@ -8,7 +8,7 @@ Pinned vocabulary lives in [`CONTEXT.md`](./CONTEXT.md). Hard-to-reverse archite
 
 1. **Temperature-keyed pre-glow** — on power-on, the controller samples the [[temperature-reading]] once, selects the matching [[pre-glow-band]] from the saved [[pre-glow-profile]], and energises the [[glow-relay]] for that band's duration.
 2. **Driver-facing pre-glow signal** — the [[dash-light]] is lit from power-on until the [[pre-glow-phase]] ends, then turns off.
-3. **Cold-only after-glow** — if the boot-time [[temperature-reading]] was ≥ 600 ADC, hold the [[glow-relay]] for 7 seconds after the alternator goes high; otherwise skip after-glow entirely and de-energise the relay the moment pre-glow ends.
+3. **Cold-only after-glow** — if the boot-time [[temperature-reading]] was ≥ 600 ADC, hold the [[glow-relay]] for 5 seconds after the alternator goes high; otherwise skip after-glow entirely and de-energise the relay the moment pre-glow ends.
 4. **In-vehicle tuning over Wi-Fi** — the controller hosts a `GlowPlugController` SoftAP that any phone can join, exposing a mobile-friendly web form to view the live [[temperature-reading]] + selected [[pre-glow-band]] and edit + save all 7 bands of the [[pre-glow-profile]] plus home Wi-Fi credentials.
 5. **Profile survives power-off** — saved [[pre-glow-profile]] values persist across power cycles via NVS so the truck behaves the same way next start.
 6. **OTA firmware updates from GitHub** — once `glowComplete == true` and home Wi-Fi has associated, the controller polls the GitHub Releases API for `harryhcs/glowplug-timer`, applies any newer release automatically, and signals progress via the [[dash-light]] and the web UI.
@@ -16,7 +16,7 @@ Pinned vocabulary lives in [`CONTEXT.md`](./CONTEXT.md). Hard-to-reverse archite
 ## Non-goals
 
 1. **No °C calibration** — the [[temperature-reading]] stays in raw ADC counts. No sensor model, no conversion to °C.
-2. **No after-glow tuning** — the 7-second duration and ≥ 600 ADC cold threshold are firmware constants, not exposed in the web UI.
+2. **No after-glow tuning** — the 5-second duration and ≥ 600 ADC cold threshold are firmware constants, not exposed in the web UI.
 3. **No authentication on the web UI** — anyone joined to the SoftAP can change the [[pre-glow-profile]]. Acceptable because the AP itself is password-gated and the device is physically in the vehicle.
 4. **No fault detection / telemetry** — no current sensing on the glow circuit, no logging of starts, no error reporting. If a glow plug is open-circuit, the controller doesn't know.
 5. **No "skip this update" mechanism** — if an update exists and the device can reach GitHub, it will be applied. A debug-only "check for update now" button exists on the web UI (added after v1.0.2 when opaque OTA failures made the boot-only timing unworkable to diagnose) that forces an immediate check; it can force a check sooner but cannot suppress one.
@@ -79,7 +79,7 @@ Default seconds (`5/4/3/2/1/1/1`) approximate the T1 curve from the Toyota 1HZ f
 
 | Name | Value | Purpose |
 |---|---|---|
-| `AFTER_GLOW_DURATION_MS` | `7000` | Length of after-glow when it runs (7 s) |
+| `AFTER_GLOW_DURATION_MS` | `5000` | Length of after-glow when it runs (5 s) |
 | `AFTER_GLOW_COLD_THRESHOLD` | `600` | After-glow runs only if `bootTempReading >= 600` |
 | `PRE_GLOW_BAND_THRESHOLDS` | `{800,700,600,500,400,300,200}` | ADC breakpoints between bands |
 | `FIRMWARE_VERSION` | semver string baked at build time, e.g. `"1.0.0"` | Compared against the GitHub release tag |
@@ -150,7 +150,7 @@ While `HTTPUpdate` is downloading + writing a new image, the `DASH_LIGHT` blinks
 
 2. **Dash light signals "wait, then crank".** `DASH_LIGHT` is HIGH from power-on for exactly the band's pre-glow duration, then LOW.
 
-3. **Cold-only after-glow fires for 7 s.** With `A0` ≥ 600 ADC at boot: after pre-glow finishes, pulling `D2` HIGH causes `GLOW_RELAY` to stay HIGH for exactly 7 s, then drop LOW. With `A0` < 600 ADC at boot: pulling `D2` HIGH drops `GLOW_RELAY` LOW *immediately* — no after-glow.
+3. **Cold-only after-glow fires for 5 s.** With `A0` ≥ 600 ADC at boot: after pre-glow finishes, pulling `D2` HIGH causes `GLOW_RELAY` to stay HIGH for exactly 5 s, then drop LOW. With `A0` < 600 ADC at boot: pulling `D2` HIGH drops `GLOW_RELAY` LOW *immediately* — no after-glow.
 
 4. **Web UI tuning round-trip.** Join `GlowPlugController` SoftAP, load `http://192.168.4.1/`, change `t8` from 5 to 7, save, reload — new value displays in the form *and* on the next boot at A0 > 800 the dash light stays lit for 7 s instead of 5.
 
