@@ -10,6 +10,8 @@
 
 **Alternatives considered.** (a) Follow T2 literally — rejected, harms plug life per Herman's experience. (b) Make after-glow duration user-tunable per band like pre-glow — rejected to keep the "less after-glow, not more" intent load-bearing; tunability invites future-Herman to dial it back up. (c) Skip after-glow entirely in all conditions — rejected, the ≥ 700 ADC cold case benefits from a brief 3 s dab.
 
+**Revision (2026-05-25, v1.0.5).** Threshold lowered 700 → 600 ADC and duration extended 3 s → 7 s after observing rough idle on cold morning starts that weren't crossing the 700 ADC bar. Intent unchanged — still far below the factory 120 s and still cold-only — just a wider "cold enough" window and a longer dab to settle combustion. If plug life turns out to suffer, the next revision walks one or both numbers back.
+
 ## ADR-0002: Simultaneous AP+STA networking, not STA-only or AP-only
 
 **Context.** The controller needs two networking behaviors at once: (a) always-available in-vehicle access to the web UI for tuning the [[pre-glow-profile]] regardless of where the vehicle is parked, and (b) opportunistic internet access for the boot-time GitHub OTA check while parked at home.
