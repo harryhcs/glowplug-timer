@@ -12,7 +12,7 @@ const int TEMP_PIN = A0;
 const unsigned long AFTER_GLOW_DURATION_MS = 7000;
 const int AFTER_GLOW_COLD_THRESHOLD = 600;
 
-const char* FIRMWARE_VERSION = "1.0.5";
+const char* FIRMWARE_VERSION = "1.1.0";
 
 Preferences prefs;
 WebServer server(80);
