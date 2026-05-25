@@ -11,7 +11,7 @@ On every power-on the controller:
 1. Samples the analog temperature sensor on `A0` once.
 2. Picks the matching pre-glow band from the saved profile (see [Defaults](#defaults)) and energises the glow relay for that band's duration. The dash light is held HIGH for the same interval so the driver knows to wait.
 3. After pre-glow finishes, the dash light goes LOW (driver can crank).
-4. When the alternator signal on `D2` goes HIGH (engine running), runs a 3-second after-glow — **only** if the boot-time reading was ≥ 700 ADC ("really cold"). Otherwise the relay drops the moment pre-glow ends.
+4. When the alternator signal on `D2` goes HIGH (engine running), runs a 7-second after-glow — **only** if the boot-time reading was ≥ 600 ADC ("cold"). Otherwise the relay drops the moment pre-glow ends.
 5. Once the full glow sequence is done, the controller checks GitHub Releases for a newer firmware build and self-updates if one is available.
 
 The factory 1HZ T2 after-glow curve (up to 120 s) is deliberately **not** followed — see [`ADR-0001`](./ADRs.md). The T1 (pre-glow) curve is honored as the default profile.
@@ -72,7 +72,7 @@ The default pre-glow profile approximates the Toyota 1HZ factory T1 curve:
 | > 200           | 1                | `t2`    |
 | ≤ 200           | 0 (skip)         | —       |
 
-After-glow is a 3-second constant, gated on boot A0 ≥ 700. Both the threshold and the duration are firmware constants, not exposed in the UI.
+After-glow is a 7-second constant, gated on boot A0 ≥ 600. Both the threshold and the duration are firmware constants, not exposed in the UI.
 
 ## OTA updates
 
